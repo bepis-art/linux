@@ -1,20 +1,54 @@
 #!/bin/bash
-#Скрипт для установки Docker, Docker Compose и установления всех зависимостей
 
-# Установка дополнительных плагинов
-apt update && apt upgrade
-apt install ca-certificates gnupg curl
+# ==========================================
+# Скрипт установки Docker и Docker Compose
+# ==========================================
 
-# Установка Docker
-# GPG-ключ, который будет использоваться пакетным менеджером apt для проверки подлинности пакетов из репозитория Docker
-curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /usr/share/keyrings/docker.gpg
+# Остановить скрипт при первой ошибке
+set -e
 
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+# Проверка: запущен ли скрипт от root
+if [ "$EUID" -ne 0 ]; then
+  echo "❌ Ошибка: Запустите скрипт с правами sudo: sudo ./setup.sh"
+  exit 1
+fi
 
+echo "🚀 Начинаем установку Docker..."
+
+# 1. Обновление системы
+echo "🔄 Обновляем систему..."
+apt update && apt upgrade -y
+
+# 2. Установка зависимостей
+echo "📦 Устанавливаем зависимости..."
+apt install -y ca-certificates gnupg curl
+
+# 3. Добавление GPG-ключа Docker
+echo "🔑 Добавляем GPG-ключ Docker..."
+install -m 0755 -d /usr/share/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor --yes -o /usr/share/keyrings/docker.gpg
+chmod a+r /usr/share/keyrings/docker.gpg
+
+# 4. Добавление репозитория Docker
+echo "📋 Добавляем репозиторий Docker..."
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 5. Установка Docker
+echo "🐳 Устанавливаем Docker..."
 apt update
-apt install docker-ce docker-ce-cli containerd.io docker-buildx-plugin
+apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
 
-# Установка Docker Compose
+# 6. Установка Docker Compose
+echo "🐙 Устанавливаем Docker Compose..."
 mkdir -p /usr/local/lib/docker/cli-plugins/
-curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose
+curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+# 7. Финальная проверка
+echo "✅ Установка завершена!"
+docker --version
+docker compose version
