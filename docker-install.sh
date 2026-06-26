@@ -2,7 +2,8 @@
 #Скрипт для установки Docker, Docker Compose и установления всех зависимостей
 
 # Установка дополнительных плагинов
-apt update && apt upgrade
+apt update  
+apt upgrade
 apt install ca-certificates gnupg curl
 
 # Установка Docker
