@@ -48,6 +48,15 @@ curl -fsSL https://github.com/docker/compose/releases/latest/download/docker-com
   -o /usr/local/lib/docker/cli-plugins/docker-compose
 chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
+# Проверка: запускаем ли мы от имени обычного пользователя (не root)
+if [ -n "$SUDO_USER" ]; then
+    echo "👤 Добавляем пользователя $SUDO_USER в группу docker..."
+    usermod -aG docker "$SUDO_USER"
+    echo "✅ Готово! Перелогиньтесь или выполните 'newgrp docker' для применения изменений."
+else
+    echo "⚠️  Скрипт запущен напрямую от root, пропускаем добавление в группу docker."
+fi
+
 # 7. Финальная проверка
 echo "✅ Установка завершена!"
 docker --version
